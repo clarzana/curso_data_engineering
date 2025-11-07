@@ -1,0 +1,219 @@
+version: 2
+
+sources:
+
+  - name: sql_server_dbo # name of the source 
+    schema: sql_server_dbo # this is the schema our raw data lives in
+    database: ALUMNO10_DEV_BRONZE_DB # this is the name of our database
+
+    quoting:
+      database: false
+      schema: false
+      identifier: false
+
+    freshness:
+      warn_after: {count: 10000, period: hour}
+      error_after: {count: 10200, period: hour}
+
+    tables:
+
+
+    ##TERMINAR DE ESCRIBIR RELATIONSHIPS
+      - name: addresses
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: ADDRESS_ID
+            data_tests:
+              - not_null
+              - unique
+          - name: ZIPCODE
+            data_tests:
+              - not_null
+          - name: COUNTRY
+            data_tests:
+              - not_null
+          - name: ADDRESS
+            data_tests:
+              - not_null
+          - name: STATE
+            data_tests:
+              - not_null
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+              - not_null
+
+      - name: events
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: EVENT_ID
+            data_tests:
+            - unique
+            - not_null
+          - name: PAGE_URL
+            data_tests:
+            - not_null
+          - name: EVENT_TYPE
+            data_tests:
+            - not_null
+          - name: USER_ID
+            data_tests:
+            - not_null
+          - name: PRODUCT_ID
+          - name: SESSION_ID
+            data_tests:
+            - not_null
+          - name: CREATED_AT
+            data_tests:
+            - not_null
+          - name: ORDER_ID
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+            - not_null
+
+      - name: orders
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: ORDER_ID
+            data_tests:
+              - unique
+              - not_null
+          - name: SHIPPING_SERVICE
+            data_tests:
+              - not_null
+          - name: SHIPPING_COST
+            data_tests:
+              - not_null
+              - positive_values
+          - name: ADDRESS_ID
+            data_tests:
+              - not_null
+              - relationships:
+                  field: ADDRESS_ID
+                  to: source('sql_server_dbo', 'addresses')
+          - name: CREATED_AT
+            data_tests:
+              - not_null
+          - name: PROMO_ID
+            data_tests:
+              - not_null
+              - relationships:
+                  field: PROMO_ID
+                  to: source('sql_server_dbo', 'promos')
+          - name: ESTIMATED_DELIVERY_AT
+          - name: ORDER_COST
+            data_tests:
+              - not_null
+              - positive_values
+          - name: USER_ID
+            data_tests:
+              - not_null
+              - relationships:
+                  field: USER_ID
+                  to: source('sql_server_dbo', 'users')
+          - name: ORDER_TOTAL
+            data_tests:
+              - not_null
+              - positive_values
+          - name: DELIVERED_AT
+          - name: TRACKING_ID
+            data_tests:
+              - not_null
+          - name: STATUS
+            data_tests:
+              - not_null
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+              - not_null
+
+      - name: order_items
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: ORDER_ID
+            data_tests:
+              - not_null
+          - name: PRODUCT_ID
+            data_tests:
+              - not_null
+          - name: QUANTITY
+            data_tests:
+              - not_null
+              - positive_values
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+              - not_null
+
+      - name: products
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: PRODUCT_ID
+            data_tests:
+              - not_null
+              - unique
+          - name: PRICE
+            data_tests:
+              - not_null
+              - positive_values
+          - name: NAME
+            data_tests:
+              - not_null
+          - name: INVENTORY
+            data_tests:
+              - not_null
+              - positive_values
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+              - not_null
+      
+      - name: promos
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: PROMO_ID
+            data_tests:
+              - not_null
+              - unique
+          - name: DISCOUNT
+            data_tests:
+              - not_null
+              - positive_values
+          - name: STATUS
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ['active', 'inactive']
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
+            data_tests:
+              - not_null
+      
+      - name: users
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: USER_ID
+            data_tests:
+              - not_null
+              - unique
+          - name: UPDATED_AT
+          - name: ADDRESS_ID
+            data_tests:
+              - not_null
+          - name: LAST_NAME
+            data_tests:
+              - not_null
+          - name: CREATED_AT
+            data_tests:
+              - not_null
+          - name: PHONE_NUMBER
+          - name: TOTAL_ORDERS
+          - name: FIRST_NAME
+            data_tests:
+              - not_null
+          - name: EMAIL
+            data_tests:
+              - not_null
+          - name: _FIVETRAN_DELETED
+          - name: _FIVETRAN_SYNCED
