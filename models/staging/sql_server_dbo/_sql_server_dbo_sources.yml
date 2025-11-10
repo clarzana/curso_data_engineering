@@ -1,8 +1,7 @@
 version: 2
 
 sources:
-
-  - name: sql_server_dbo # name of the source 
+  - name: sql_server_dbo # name of the source
     schema: sql_server_dbo # this is the schema our raw data lives in
     database: ALUMNO10_DEV_BRONZE_DB # this is the name of our database
 
@@ -12,208 +11,364 @@ sources:
       identifier: false
 
     freshness:
-      warn_after: {count: 10000, period: hour}
-      error_after: {count: 10200, period: hour}
+      warn_after: { count: 10000, period: hour }
+      error_after: { count: 10200, period: hour }
 
     tables:
-
-
-    ##TERMINAR DE ESCRIBIR RELATIONSHIPS
+      ##TERMINAR DE ESCRIBIR RELATIONSHIPS
       - name: addresses
         loaded_at_field: _fivetran_synced
+        description: >
+          Direcciones físicas de los usuarios
         columns:
           - name: ADDRESS_ID
+            description: >
+              Clave primaria
             data_tests:
               - not_null
               - unique
           - name: ZIPCODE
+            description: >
+              Código postal de la dirección
             data_tests:
               - not_null
           - name: COUNTRY
+            description: >
+              País de la dirección
             data_tests:
               - not_null
           - name: ADDRESS
+            description: >
+              La propia dirección 
             data_tests:
               - not_null
           - name: STATE
+            description: >
+              Estado donde se encuentra la dirección (en EEUU)
             data_tests:
               - not_null
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
             data_tests:
               - not_null
 
       - name: events
+        description: >
+          Eventos que han sucedido en la tienda online (ver un producto, añadir al carrito, etc)
         loaded_at_field: _fivetran_synced
         columns:
           - name: EVENT_ID
+            description: >
+              Clave primaria
             data_tests:
-            - unique
-            - not_null
+              - unique
+              - not_null
           - name: PAGE_URL
+            description: >
+              Dirección URL donde ocurrió el evento
             data_tests:
-            - not_null
+              - not_null
           - name: EVENT_TYPE
+            description: >
+              Qué ha ocurrido específicamente (ver un producto, añadir al carrito, checkout o envío realizado)
             data_tests:
-            - not_null
+              - not_null
           - name: USER_ID
+            description: >
+              Clave del usuario que ha realizado el evento
             data_tests:
-            - not_null
+              - not_null
+              - relationships:
+                  field: USER_ID
+                  to: source('sql_server_dbo', 'users')
           - name: PRODUCT_ID
+            description: >
+              Clave del producto sobre el que ha ocurrido el evento, si ha sido sobre un producto
+            data_tests:
+              - dbt_utils.relationships_where:
+                  field: PRODUCT_ID
+                  to: source('sql_server_dbo', 'products')
+                  from_condition: PRODUCT_ID IS NOT NULL OR TRIM(PRODUCT_ID)!=''
+                  to_condition: TRUE
           - name: SESSION_ID
+            description: >
+              Clave de la sesión actual en la web (periodo de tiempo desde que se abre la web hasta que se cierra)
             data_tests:
-            - not_null
+              - not_null
           - name: CREATED_AT
+            description: >
+              Momento en que ocurrió el evento
             data_tests:
-            - not_null
+              - not_null
           - name: ORDER_ID
-          - name: _FIVETRAN_DELETED
-          - name: _FIVETRAN_SYNCED
+            description: >
+              Clave del envío, si se ha realizado uno en este evento
             data_tests:
-            - not_null
+              - relationships_where:
+                  field: ORDER_ID
+                  to: source('sql_server_dbo', 'orders')
+                  from_condition: ORDER_ID IS NOT NULL OR TRIM(ORDER_ID)!=''
+                  to_condition: TRUE
+          - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
+          - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
 
       - name: orders
+        description: >
+          Pedidos realizados
         loaded_at_field: _fivetran_synced
         columns:
           - name: ORDER_ID
+            description: >
+              Clave primaria
             data_tests:
               - unique
               - not_null
           - name: SHIPPING_SERVICE
+            description: >
+              Empresa que realiza el envío
             data_tests:
               - not_null
           - name: SHIPPING_COST
+            description: >
+              Costes de envío, en dólares
             data_tests:
               - not_null
               - positive_values
           - name: ADDRESS_ID
+            description: >
+              Clave de la dirección del envío
             data_tests:
               - not_null
               - relationships:
                   field: ADDRESS_ID
                   to: source('sql_server_dbo', 'addresses')
           - name: CREATED_AT
+            description: >
+              Cuándo se realizó el pedido
             data_tests:
               - not_null
           - name: PROMO_ID
+            description: >
+              Clave de la promoción usada como descuento, si se ha usado una
             data_tests:
               - not_null
               - relationships:
                   field: PROMO_ID
                   to: source('sql_server_dbo', 'promos')
           - name: ESTIMATED_DELIVERY_AT
+            description: >
+              Fecha estimada de llegada del envío
           - name: ORDER_COST
+            description: >
+              Coste del pedido, sin costes de envío
             data_tests:
               - not_null
               - positive_values
           - name: USER_ID
+            description: >
+              Clave del usuario que ha realizado el pedido
             data_tests:
               - not_null
               - relationships:
                   field: USER_ID
                   to: source('sql_server_dbo', 'users')
           - name: ORDER_TOTAL
+            description: >
+              Total del importe del pedido (productos+envío)
             data_tests:
               - not_null
               - positive_values
           - name: DELIVERED_AT
+            description: >
+              Fecha de entrega, si ya ha sido entregado el pedido
           - name: TRACKING_ID
+            description: >
+              Código para el tracking físico del pedido
             data_tests:
               - not_null
           - name: STATUS
+            description: >
+              Estado del pedido (aprobado, en camino, etc)
             data_tests:
               - not_null
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
             data_tests:
               - not_null
 
       - name: order_items
+        description: >
+          Detalles de pedido (cada producto diferente dentro de un pedido)
         loaded_at_field: _fivetran_synced
         columns:
           - name: ORDER_ID
+            description: >
+              Clave primaria
             data_tests:
               - not_null
+              - relationships:
+                  field: ORDER_ID
+                  to: source('sql_server_dbo', 'orders')
           - name: PRODUCT_ID
+            description: >
+              Clave del producto
             data_tests:
               - not_null
+              - relationships:
+                  field: PRODUCT_ID
+                  to: source('sql_server_dbo', 'products')
           - name: QUANTITY
+            description: >
+              Cantidad de unidades del producto
             data_tests:
               - not_null
               - positive_values
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
             data_tests:
               - not_null
 
       - name: products
+        description: >
+          Productos en el catálogo de la tienda
         loaded_at_field: _fivetran_synced
         columns:
           - name: PRODUCT_ID
+            description: >
+              Clave primaria
             data_tests:
               - not_null
               - unique
           - name: PRICE
+            description: >
+              Precio del producto, en dólares
             data_tests:
               - not_null
               - positive_values
           - name: NAME
+            description: >
+              Nombre del producto
             data_tests:
               - not_null
           - name: INVENTORY
+            description: >
+              Cantidad de unidades en stock del producto
             data_tests:
               - not_null
               - positive_values
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
             data_tests:
               - not_null
-      
+
       - name: promos
+        description: >
+          Diferentes promociones y descuentos de la tienda
         loaded_at_field: _fivetran_synced
         columns:
           - name: PROMO_ID
+            description: >
+              Clave primaria
             data_tests:
               - not_null
               - unique
           - name: DISCOUNT
+            description: >
+              Cantidad que se descuenta, en dólares (no es un porcentaje)
             data_tests:
               - not_null
               - positive_values
           - name: STATUS
+            description: >
+              Estado de la promoción: inactiva o activa
             data_tests:
               - not_null
               - accepted_values:
-                  values: ['active', 'inactive']
+                  values: ["active", "inactive"]
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
             data_tests:
               - not_null
-      
+
       - name: users
+        description: >
+          Usuarios de la tienda
         loaded_at_field: _fivetran_synced
         columns:
           - name: USER_ID
+            description: >
+              Clave primaria
             data_tests:
               - not_null
               - unique
           - name: UPDATED_AT
+            description: >
+              Última vez que se ha actualizado este perfil
           - name: ADDRESS_ID
+            description: >
+              Dirección del usuario (solo permite una)
             data_tests:
               - not_null
+              - relationships:
+                  field: ADDRESS_ID
+                  to: source('sql_server_dbo', 'addresses')
           - name: LAST_NAME
+            description: >
+              Apellido
             data_tests:
               - not_null
           - name: CREATED_AT
+            description: >
+              Fecha de creación del usuario
             data_tests:
               - not_null
           - name: PHONE_NUMBER
+            description: >
+              Número de teléfono del usuario
           - name: TOTAL_ORDERS
+            description: >
+              Cantidad de pedidos realizados por el usuario
           - name: FIRST_NAME
+            description: >
+              Nombre del usuario (sin apellido)
             data_tests:
               - not_null
           - name: EMAIL
+            description: >
+              Correo electrónico del usuario
             data_tests:
               - not_null
           - name: _FIVETRAN_DELETED
+            description: >
+              Historificación del dato
           - name: _FIVETRAN_SYNCED
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
