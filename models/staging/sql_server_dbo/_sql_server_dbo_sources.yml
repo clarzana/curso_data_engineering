@@ -15,7 +15,6 @@ sources:
       error_after: { count: 10200, period: hour }
 
     tables:
-      ##TERMINAR DE ESCRIBIR RELATIONSHIPS
       - name: addresses
         loaded_at_field: _fivetran_synced
         description: >
