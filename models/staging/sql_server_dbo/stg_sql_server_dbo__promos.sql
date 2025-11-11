@@ -10,7 +10,7 @@ with src_promos as (
 ), 
 surrogate_ids_and_casting as (
     select
-        md5(promo_id)::varchar(32) as promo_id
+        {{ dbt_utils.generate_surrogate_key(['promo_id']) }}::varchar(32) as promo_id
         , promo_id::varchar(256) as promo_name
         , discount::number(38, 0) as discount_in_dollars
         , md5(status)::varchar(32) as promo_status_id

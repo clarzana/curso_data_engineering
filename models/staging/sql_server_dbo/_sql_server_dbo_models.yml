@@ -8,24 +8,40 @@ models:
       - name: address_id
         data_type: varchar(512)
         description: "Clave primaria"
-      - name: zipcode
-        data_type: number(38, 0)
-        description: "Código postal"
-      - name: country_id
+      - name: locality_id
         data_type: varchar(32)
-        description: "Clave foránea del estado"
+        description: "Clave foránea de la localidad"
       - name: address
         data_type: varchar(256)
         description: "Dirección"
-      - name: state_id
-        data_type: varchar(32)
-        description: "Clave foránea del estado"
       - name: _fivetran_deleted
         data_type: boolean
         description: "Historificación de eliminaciones"
       - name: _fivetran_synced
         data_type: timestamp_tz
         description: "Cuándo ha sido actualizada esta fila"
+
+  - name: localities
+    description: >
+      Tabla derivada de addresses, que reúne los aspectos más generales de la dirección postal:
+      País, estado y código postal.
+      Fraccionar esta tabla en tres tablas diferentes supondría una carga
+      demasiado grande al hacer consultas, añadiendo JOINs innecesarios.
+      De este modo, agrupamos el país y el estado junto al código postal,
+      que sería el dato con menor granularidad de los tres.
+    columns:
+      - name: locality_id
+        data_type: varchar(32)
+        description: "Clave primaria"
+      - name: zipcode
+        data_type: number(38, 0)
+        description: "Código postal"
+      - name: state
+        data_type: varchar(256)
+        description: "Nombre del estado"
+      - name: country
+        data_type: varchar(256)
+        description: "Nombre del país"
 
   - name: events
     description: "Eventos ocurridos en la tienda online, relativos al proceso de compra"
@@ -81,47 +97,51 @@ models:
         description: "Cuándo ha sido actualizada esta fila"
 
   - name: orders
-    description: "Pedidos realizados"
+    description: >
+      Pedidos realizados.
+      En la capa bronce, esta tabla contiene una columna llamado "order_total"
+      que indica el resultado de la operación ORDER_COST - DISCOUNT + SHIPPING_COST.
+      Se ha decidido no incluir esta columna, puesto que es una operación analítica
+      que se realizará en la capa gold, si es necesario
     columns:
       - name: order_id
         data_type: varchar(256)
         description: "Clave primaria"
-      - name: shipping_service
-        data_type: varchar
-        description: ""
+      - name: shipping_service_id
+        data_type: varchar(32)
+        description: "Clave foránea del servicio de transporte del pedido"
       - name: shipping_cost
         data_type: float
-        description: ""
+        description: "Coste del envío. No le afecta el descuento de la promoción, si la tiene"
       - name: address_id
-        data_type: varchar
-        description: ""
+        data_type: varchar(256)
+        description: "Clave foránea de la dirección postal del destinatario"
       - name: created_at
         data_type: timestamp_tz
-        description: ""
+        description: "Cuándo se realizó el pedido"
       - name: promo_id
-        data_type: varchar
-        description: ""
+        data_type: varchar(256)
+        description: "Clave foránea de la promoción aplicada al pedido, si la tiene"
       - name: estimated_delivery_at
         data_type: timestamp_tz
-        description: ""
+        description: >
+          Tiempo estimado de llegada. Hay pedidos sin este campo, incluso si no han sido entregados.
+          También hay pedidos ya entregados con este campo.
       - name: order_cost
         data_type: float
-        description: ""
+        description: "El importe del pedido, sin los costes de transporte"
       - name: user_id
-        data_type: varchar
-        description: ""
-      - name: order_total
-        data_type: float
-        description: ""
+        data_type: varchar(256)
+        description: "Clave foránea del usuario que ha realizado el pedido"
       - name: delivered_at
         data_type: timestamp_tz
-        description: ""
+        description: "Cuándo fue entregado, si ya se ha entregado"
       - name: tracking_id
-        data_type: varchar
-        description: ""
+        data_type: varchar(256)
+        description: "Código para el tracking físico del pedido"
       - name: status
-        data_type: varchar
-        description: ""
+        data_type: varchar(256)
+        description: "Estado del pedido (aprobado, en camino, etc)"
       - name: _fivetran_deleted
         data_type: boolean
         description: "Historificación de eliminaciones"
@@ -130,20 +150,20 @@ models:
         description: "Cuándo ha sido actualizada esta fila"
 
   - name: products
-    description: ""
+    description: "Productos"
     columns:
       - name: product_id
-        data_type: varchar
+        data_type: varchar(256)
         description: "Clave primaria"
       - name: price
         data_type: float
-        description: ""
+        description: "Precio del producto"
       - name: name
-        data_type: varchar
-        description: ""
+        data_type: varchar(256)
+        description: "Nombre del producto"
       - name: inventory
         data_type: number
-        description: ""
+        description: "Cantidad que hay en stock"
       - name: _fivetran_deleted
         data_type: boolean
         description: "Historificación de eliminaciones"
@@ -152,23 +172,42 @@ models:
         description: "Cuándo ha sido actualizada esta fila"
 
   - name: promos
-    description: ""
+    description: "Promociones y descuentos aplicables a pedidos"
     columns:
       - name: promo_id
-        data_type: varchar
+        data_type: varchar(256)
         description: "Clave primaria"
       - name: discount
-        data_type: number
-        description: ""
-      - name: status
-        data_type: varchar
-        description: ""
+        data_type: number(38, 0)
+        description: >
+          Cantidad que se descuenta, en dólares (no es un porcentaje)
+        data_tests:
+          - not_null
+          - positive_values
+      - name: promo_status_id
+        data_type: varchar(32)
+        description: >
+          Clave foránea del estado de la promoción (activa o inactiva)
       - name: _fivetran_deleted
         data_type: boolean
         description: "Historificación de eliminaciones"
       - name: _fivetran_synced
         data_type: timestamp_tz
         description: "Cuándo ha sido actualizada esta fila"
+
+  - name: promo_status
+    description: "Estados en los que puede estar una promoción"
+    columns:
+      - name: promo_status_id
+        data_type: varchar(32)
+        description: "Clave primaria"
+      - name: order_status_desc
+        data_type: varchar(256)
+        description: >
+          Descripción del estado de la promoción (activa, inactiva)
+        data_tests:
+          - not_null
+          - positive_values
 
   - name: users
     description: ""

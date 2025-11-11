@@ -1,21 +1,21 @@
 with 
-
 source as (
 
-    select * from {{ source('sql_server_dbo', 'addresses') }}
+    select * from {{ ref('base_sql_server_dbo_addresses') }}
 
 ),
 
 renamed as (
 
     select
+        {{dbt_utils.generate_surrogate_key(['zipcode', 'state', 'country'])}}::varchar(32) as locality_id,
         address_id,
-        zipcode,
-        country,
+        --1. zipcode,
+        --2. state,
+        --3. country,
         address,
-        state,
-        _fivetran_deleted,
-        _fivetran_synced
+        _fivetran_deleted as is_deleted,
+        _fivetran_synced as load_date
 
     from source
 
