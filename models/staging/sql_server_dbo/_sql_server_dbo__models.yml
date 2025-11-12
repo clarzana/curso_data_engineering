@@ -177,7 +177,7 @@ models:
       - name: promo_id
         data_type: varchar(256)
         description: "Clave primaria"
-      - name: discount
+      - name: discount_in_dollars
         data_type: number(38, 0)
         description: >
           Cantidad que se descuenta, en dólares (no es un porcentaje)

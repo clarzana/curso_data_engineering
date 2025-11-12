@@ -12,6 +12,7 @@ renamed as (
         zipcode,
         country,
         address,
+        {{dbt_utils.generate_surrogate_key(['zipcode', 'state', 'country'])}}::varchar(32) as locality_id
         state,
         _fivetran_deleted,
         _fivetran_synced
