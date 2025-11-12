@@ -19,7 +19,7 @@ surrogate_ids_and_casting as (
     from src_promos
     union all
     select
-         {{ dbt_utils.generate_surrogate_key(['"nopromo"']) }}::varchar(32) as promo_id
+         {{ dbt_utils.generate_surrogate_key(['NULL']) }}::varchar(32) as promo_id
         , 'No promotion'::varchar(256) as promo_name
         , 0::number(38, 0) as discount_in_dollars
         , md5('active')::varchar(32) as promo_status_id
