@@ -1,0 +1,399 @@
+version: 2
+
+sources:
+  - name: sql_server_dbo # name of the source
+    schema: sql_server_dbo # this is the schema our raw data lives in
+    database: "{{ env_var('DBT_ENVIRONMENTS') }}_BRONZE_DB" # this is the name of our database
+
+    quoting:
+      database: false
+      schema: false
+      identifier: false
+
+    freshness:
+      warn_after: { count: 24, period: hour }
+      error_after: { count: 48, period: hour }
+
+    tables:
+      - name: addresses
+        loaded_at_field: _fivetran_synced
+        description: >
+          Direcciones físicas de los usuarios
+        columns:
+          - name: address_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - not_null
+              - unique
+          - name: zipcode
+            data_type: number(38, 0)
+            description: >
+              Código postal de la dirección
+            data_tests:
+              - not_null
+          - name: country
+            data_type: varchar(256)
+            description: >
+              País de la dirección
+            data_tests:
+              - not_null
+          - name: address
+            data_type: varchar(256)
+            description: >
+              La propia dirección 
+            data_tests:
+              - not_null
+          - name: state
+            data_type: varchar(256)
+            description: >
+              Estado donde se encuentra la dirección (en eeuu)
+            data_tests:
+              - not_null
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+    
+      - name: events
+        description: >
+          Eventos que han sucedido en la tienda online (ver un producto, añadir al carrito, etc)
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: event_id
+            data_type: varchar(1024)
+            description: >
+              Clave primaria
+            data_tests:
+              - unique
+              - not_null
+          - name: page_url
+            data_type: varchar(1024)
+            description: >
+              Dirección url donde ocurrió el evento
+            data_tests:
+              - not_null
+          - name: event_type
+            data_type: varchar(100)
+            description: >
+              Qué ha ocurrido específicamente (ver un producto, añadir al carrito, checkout o envío realizado)
+            data_tests:
+              - not_null
+          - name: user_id
+            data_type: varchar(1024)
+            description: >
+              Clave del usuario que ha realizado el evento
+            data_tests:
+              - not_null
+          - name: product_id
+            data_type: varchar(1024)
+            description: >
+              Clave del producto sobre el que ha ocurrido el evento, si ha sido sobre un producto
+          - name: session_id
+            data_type: varchar(1024)
+            description: >
+              Clave de la sesión actual en la web (periodo de tiempo desde que se abre la web hasta que se cierra)
+            data_tests:
+              - not_null
+          - name: created_at
+            data_type: timestamp_tz
+            description: >
+              Momento en que ocurrió el evento
+            data_tests:
+              - not_null
+          - name: order_id
+            data_type: varchar(1024)
+            description: >
+              Clave del envío, si se ha realizado uno en este evento
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+
+      - name: orders
+        description: >
+          Pedidos realizados
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: order_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - unique
+              - not_null
+          - name: shipping_service
+            data_type: varchar(256)
+            description: >
+              Empresa que realiza el envío
+            data_tests:
+              - not_null
+          - name: shipping_cost
+            data_type: float
+            description: >
+              Costes de envío, en dólares
+            data_tests:
+              - not_null
+              - positive_values
+          - name: address_id
+            data_type: varchar(256)
+            description: >
+              Clave de la dirección del envío
+            data_tests:
+              - not_null
+          - name: created_at
+            data_type: timestamp_tz
+            description: >
+              Cuándo se realizó el pedido
+            data_tests:
+              - not_null
+          - name: promo_id
+            data_type: varchar(256)
+            description: >
+              Clave de la promoción usada como descuento, si se ha usado una
+            data_tests:
+              - not_null
+          - name: estimated_delivery_at
+            data_type: timestamp_tz
+            description: >
+              Fecha estimada de llegada del envío
+          - name: order_cost
+            data_type: float
+            description: >
+              Coste del pedido, sin costes de envío
+            data_tests:
+              - not_null
+              - positive_values
+          - name: user_id
+            data_type: varchar(256)
+            description: >
+              Clave del usuario que ha realizado el pedido
+            data_tests:
+              - not_null
+          - name: order_total
+            data_type: float
+            description: >
+              Total del importe del pedido (productos+envío)
+            data_tests:
+              - not_null
+              - positive_values
+          - name: delivered_at
+            data_type: timestamp_tz
+            description: >
+              Fecha de entrega, si ya ha sido entregado el pedido
+          - name: tracking_id
+            data_type: varchar(256)
+            description: >
+              Código para el tracking físico del pedido
+            data_tests:
+              - not_null
+          - name: status
+            data_type: varchar(256)
+            description: >
+              Estado del pedido (aprobado, en camino, etc)
+            data_tests:
+              - not_null
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+
+      - name: order_items
+        description: >
+          Detalles de pedido (cada producto diferente dentro de un pedido)
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: order_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - not_null
+          - name: product_id
+            data_type: varchar(256)
+            description: >
+              Clave del producto
+            data_tests:
+              - not_null
+          - name: quantity
+            data_type: number(38, 0)
+            description: >
+              Cantidad de unidades del producto
+            data_tests:
+              - not_null
+              - positive_values
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+
+      - name: products
+        description: >
+          Productos en el catálogo de la tienda
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: product_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - not_null
+              - unique
+          - name: price
+            data_type: float
+            description: >
+              Precio del producto, en dólares
+            data_tests:
+              - not_null
+              - positive_values
+          - name: name
+            data_type: varchar(256)
+            description: >
+              Nombre del producto
+            data_tests:
+              - not_null
+          - name: inventory
+            data_type: number(38, 0)
+            description: >
+              Cantidad de unidades en stock del producto
+            data_tests:
+              - not_null
+              - positive_values
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+
+      - name: promos
+        description: >
+          Diferentes promociones y descuentos de la tienda
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: promo_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - not_null
+              - unique
+          - name: discount
+            data_type: number(38, 0)
+            description: >
+              Cantidad que se descuenta, en dólares (no es un porcentaje)
+            data_tests:
+              - not_null
+              - positive_values
+          - name: status
+            data_type: varchar(256)
+            description: >
+              Estado de la promoción: inactiva o activa
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ["active", "inactive"]
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
+
+      - name: users
+        description: >
+          Usuarios de la tienda
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: user_id
+            data_type: varchar(256)
+            description: >
+              Clave primaria
+            data_tests:
+              - not_null
+              - unique
+          - name: updated_at
+            data_type: timestamp_tz
+            description: >
+              Última vez que se ha actualizado este perfil
+          - name: address_id
+            data_type: varchar(256)
+            description: >
+              Dirección del usuario (solo permite una)
+            data_tests:
+              - not_null
+          - name: last_name
+            data_type: varchar(256)
+            description: >
+              Apellido
+            data_tests:
+              - not_null
+          - name: created_at
+            data_type: timestamp_tz
+            description: >
+              Fecha de creación del usuario
+            data_tests:
+              - not_null
+          - name: phone_number
+            data_type: varchar(256)
+            description: >
+              Número de teléfono del usuario
+          - name: total_orders
+            data_type: number(38, 0)
+            description: >
+              Cantidad de pedidos realizados por el usuario
+          - name: first_name
+            data_type: varchar(256)
+            description: >
+              Nombre del usuario (sin apellido)
+            data_tests:
+              - not_null
+          - name: email
+            data_type: varchar(256)
+            description: >
+              Correo electrónico del usuario
+            data_tests:
+              - not_null
+          - name: _fivetran_deleted
+            data_type: boolean
+            description: >
+              Historificación del dato
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+            description: >
+              Cuándo se actualizó este dato por última vez
+            data_tests:
+              - not_null
