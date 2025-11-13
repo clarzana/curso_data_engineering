@@ -1,6 +1,6 @@
 {{
   config(
-    materialized='view',
+    materialized='incremental',
     unique_key='order_id',
     on_schema_change='fail'
   )
@@ -9,14 +9,14 @@
 
 with 
 source as (
-    select * from {{ source('sql_server_dbo', 'orders') }}
+    select * from {{ ref('base_sql_server_dbo__orders') }}
 ),
 
 renamed as (
 
     select
         order_id,
-        shipping_service,
+        shipping_service_id,
         shipping_cost,
         address_id,
         created_at,
