@@ -9,7 +9,7 @@
 
 with 
 source as (
-    select * from {{ source('sql_server_dbo', 'orders') }}
+    select * from {{ ref('base_sql_server_dbo__orders') }}
 ),
 
 renamed as (
@@ -20,10 +20,7 @@ renamed as (
         shipping_cost,
         address_id,
         created_at,
-        case
-        when trim(promo_id) is null or trim(promo_id)==""
-        then md5("nopromo")
-        
+        promo_id,
         estimated_delivery_at,
         order_cost,
         user_id,

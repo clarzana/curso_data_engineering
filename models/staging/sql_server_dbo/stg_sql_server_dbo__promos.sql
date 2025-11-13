@@ -26,4 +26,4 @@ renamed_casted as (
         , '1900-01-01 00:00:00 +0000'::timestamp_tz as load_date
         , null::boolean as is_deleted
 )
-select * from surrogate_ids_and_casting
+select * from renamed_casted

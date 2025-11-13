@@ -8,12 +8,12 @@ renamed as (
 
     select
         order_id,
-        {{ dbt_utils.generate_surrogate_key(['source.shipping_service']) }}::varchar(32) as promo_id,
-        shipping_service,
+        {{ dbt_utils.generate_surrogate_key(['source.shipping_service']) }}::varchar(32) as shipping_service_id,
+        shipping_service as shipping_service_name,
         shipping_cost,
         address_id,
         created_at,
-        promo_id,
+        {{ dbt_utils.generate_surrogate_key(['source.promo_id']) }}::varchar(32) as promo_id,
         estimated_delivery_at,
         order_cost,
         user_id,
