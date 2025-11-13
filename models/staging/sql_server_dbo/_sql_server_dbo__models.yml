@@ -175,8 +175,11 @@ models:
     description: "Promociones y descuentos aplicables a pedidos"
     columns:
       - name: promo_id
-        data_type: varchar(256)
+        data_type: varchar(32)
         description: "Clave primaria"
+      - name: promo_name
+        data_type: varchar(256)
+        description: "Nombre de la promoción (el código a introducir en la tienda)"
       - name: discount_in_dollars
         data_type: number(38, 0)
         description: >

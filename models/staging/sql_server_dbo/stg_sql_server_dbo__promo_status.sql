@@ -15,7 +15,7 @@ surrogate_ids_and_casting as (
     from src_promos
     union all
     select
-         {{ dbt_utils.generate_surrogate_key(['NULL']) }}::varchar(32) as promo_status_id
+         md5("nostatus")::varchar(32) as promo_status_id
         , 'No status'::varchar(256) as promo_status_name
 )
 select * from surrogate_ids_and_casting

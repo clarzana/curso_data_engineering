@@ -1,6 +1,6 @@
 {{
   config(
-    materialized='view',
+    materialized='incremental',
     unique_key='order_id',
     on_schema_change='fail'
   )
@@ -16,11 +16,14 @@ renamed as (
 
     select
         order_id,
-        shipping_service,
+        shipping_service_id,
         shipping_cost,
         address_id,
         created_at,
-        promo_id,
+        case
+        when trim(promo_id) is null or trim(promo_id)==""
+        then md5("nopromo")
+        
         estimated_delivery_at,
         order_cost,
         user_id,

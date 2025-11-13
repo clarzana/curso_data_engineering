@@ -1,3 +1,12 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key='_row',
+        on_schema_change='fail'
+    )
+}}
+
+
 with 
 source as (
 
